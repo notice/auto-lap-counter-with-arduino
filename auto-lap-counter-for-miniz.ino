@@ -6,6 +6,8 @@
 #define ANALOG_THRESHOLD 1000
 #define CHATTERING 2
 #define BOOING_LEVEL 3
+#define DELAY 40
+#define LAP 1
 
 unsigned long beforeTime = 0;
 unsigned long bestTime = 0xffffffff;
@@ -19,7 +21,7 @@ int booingLevel = 0;
 
 void setup() {
   Serial.begin(9600);
-  Serial.print("Auto Lapper beta-2 Ready.\n");     
+  Serial.print("Auto Lap Counter beta-2 Ready.\n");     
 }
 
 void loop() {
@@ -35,17 +37,17 @@ void loop() {
     }
   } else {
     if (status == 0) {
-      status = 1;
+      status = LAP;
       chattering = CHATTERING;
       if (beforeTime == 0) {
         beforeTime = millis();      
-        Serial.print("start:");     
+        Serial.println("Go!");     
       } else {
         unsigned long currentTime = millis();
         unsigned long interval = currentTime - beforeTime;
         beforeTime = currentTime;
         ++lapCount;
-        Serial.print("lap:"); Serial.println(lapCount);     
+        Serial.print("lap:"); Serial.print(lapCount); Serial.print(" ");     
         printTime(interval);
         if (bestTime > interval) {
           bestTime = interval;
@@ -60,7 +62,7 @@ void loop() {
       }
     }
   }
-  delay(40);
+  delay(DELAY);
 }
 
 void printTime(int time)
