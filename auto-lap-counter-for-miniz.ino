@@ -1,9 +1,11 @@
 /*
- * Auto Lap Counter for MINIZ beta-2
+ * Auto Lap Counter for MINIZ beta-4
+ * using PSD(Position Sensitive Detector) GP2Y0A21YK
+ * 
  * author: kan
  */
 #define ANALOG_PORT 5
-#define ANALOG_THRESHOLD 800
+#define ANALOG_THRESHOLD 300
 #define CHATTERING 2
 #define BOOING_LEVEL 3
 #define DELAY 40
@@ -27,7 +29,7 @@ int lapSignalPort = 0;
 
 void setup() {
   Serial.begin(9600);
-  Serial.print("Auto Lap Counter beta-2 Ready.\n");     
+  Serial.println("Auto Lap Counter beta-4 Ready.");     
 }
 
 void loop() {
@@ -35,7 +37,7 @@ void loop() {
   if (debug) {
     Serial.println(v);
   }
-  if (v >= threshold) {
+  if (v < threshold) {
     if (chattering == 0) {
       status = 0;
     } else {
