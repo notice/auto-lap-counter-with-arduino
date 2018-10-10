@@ -1,8 +1,9 @@
 /*
- * Auto Lap Counter for MINIZ beta-5
- * add start signals and printing results
+ * Auto Lap Counter for MINIZ beta-6
+ * add sounds to start signal and final lap
  * 
  * revises
+ * beta-5: add start signals and printing results
  * beta-4: using PSD(Position Sensitive Detector) GP2Y0A21YK
  * beta-3: add lap signal LEDs
  * 
@@ -22,8 +23,17 @@
 #define RED_LED 9
 #define GREEN_LED 10
 
+#define SOUND_PORT 12
+#define SOUND_SHORT_LENGTH 200
+#define SOUND_LONG_LENGTH 2000
+#define SOUND_RED 262
+#define SOUND_GREEN 523
+#define SOUND_FINAL_LAP 349
+#define SOUND_FINISH 494
+
 int debug = 0;
 
+int verbose = 0;
 unsigned long beforeTime = 0;
 unsigned long bestTime = 0xffffffff;
 int threshold = ANALOG_THRESHOLD;
@@ -77,9 +87,11 @@ void finish()
 {
   if (finished == 0) {
     finished = 1;
+    tone(SOUND_PORT, SOUND_FINISH, SOUND_LONG_LENGTH);
     analogWrite(RED_LED, 0);
     analogWrite(GREEN_LED, 0);
     printLapTimes();
+
   } else {
     if (finishedFlash == 0) {
       finishedFlash = 1;
@@ -103,18 +115,25 @@ void lap()
     beforeTime = currentTime;
     times[lapCount] = interval;
     ++lapCount;
-    Serial.print("lap:"); Serial.print(lapCount); Serial.print(" "); printTime(interval);
+    if (verbose) {
+      Serial.print("lap:"); Serial.print(lapCount); Serial.print(" "); printTime(interval);      
+    }
     lapSignalCount = 2;
     if (bestTime > interval) {
       bestTime = interval;
-      Serial.print("You did it! the best LAP!\n");
+      if (verbose) {
+        Serial.print("You did it! the best LAP!\n");
+      }
       lapSignalPort = GREEN_LED;
+      booingLevel = 0;
     } else {
       lapSignalPort = RED_LED;
       ++booingLevel;
       if (booingLevel >= BOOING_LEVEL) {
         booingLevel = 0;
-        Serial.print("Boo! Go for it!!\n");            
+        if (verbose) {
+          Serial.print("Boo! Go for it!!\n");          
+        }  
       }
     }
   }
@@ -128,7 +147,10 @@ void frashLapSignal()
     if (lapSignalCount == 0) {
       analogWrite(lapSignalPort, 0);
       if ((lapCount + 1) >= MAX_LAP) { // final lap
-        Serial.println("final lap!!");
+        tone(SOUND_PORT, SOUND_FINAL_LAP, SOUND_SHORT_LENGTH);
+        if (verbose) {
+          Serial.println("final lap!!");
+        }
         delay(500);  
         // flashing LED
         analogWrite(lapSignalPort, 255);
@@ -157,20 +179,23 @@ void printTime(unsigned long time)
 
 void startSignal()
 {
-  Serial.println("Auto Lap Counter beta-5 Ready.");
+  Serial.println("Auto Lap Counter beta-6 Ready.");
 
   for (int i = 0; i < 3; ++i) {
+   tone(SOUND_PORT, SOUND_RED, SOUND_SHORT_LENGTH);
    analogWrite(RED_LED, 255);
    delay(1000);    
    analogWrite(RED_LED, 0);
    delay(1000);    
   }
-  
+  if (verbose) {
+    Serial.println("Go!");
+  }
+  tone(SOUND_PORT, SOUND_GREEN, SOUND_LONG_LENGTH);
   analogWrite(GREEN_LED, 255);
   delay(500);     
   analogWrite(GREEN_LED, 0);
   beforeTime = millis(); 
-  Serial.println("Go!");
 }
 
 void printLapTimes()
