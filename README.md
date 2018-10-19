@@ -12,4 +12,4 @@ This program is auto lap counter for playing R/C car(for MINIZ).
 
 ## circuit
 
-<a href="http://fritzing.org/"><img style="width:300px;" src="https://user-images.githubusercontent.com/150661/47142231-6eaa1800-d2fd-11e8-9094-3f52747e2832.png"></a>
+<a href="http://fritzing.org/"><img  src="https://user-images.githubusercontent.com/150661/47190857-b91fa900-d37e-11e8-943a-fbb3394ea2c6.png"></a>
