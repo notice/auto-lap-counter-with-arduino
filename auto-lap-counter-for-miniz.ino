@@ -22,6 +22,7 @@
 
 #define RED_LED 9
 #define GREEN_LED 10
+#define LED_BRIGHTNESS 1
 
 #define SOUND_PORT 12
 #define SOUND_SHORT_LENGTH 200
@@ -95,7 +96,7 @@ void finish()
   } else {
     if (finishedFlash == 0) {
       finishedFlash = 1;
-      analogWrite(GREEN_LED, 255);
+      analogWrite(GREEN_LED, LED_BRIGHTNESS);
       delay(500);    
     } else {
       finishedFlash = 0;
@@ -142,7 +143,7 @@ void lap()
 void frashLapSignal()
 {
   if (lapSignalCount > 0) {
-    analogWrite(lapSignalPort, 255);
+    analogWrite(lapSignalPort, LED_BRIGHTNESS);
     --lapSignalCount;
     if (lapSignalCount == 0) {
       analogWrite(lapSignalPort, 0);
@@ -153,7 +154,7 @@ void frashLapSignal()
         }
         delay(500);  
         // flashing LED
-        analogWrite(lapSignalPort, 255);
+        analogWrite(lapSignalPort, LED_BRIGHTNESS);
         delay(500);  
         analogWrite(lapSignalPort, 0);
         delay(500);  
@@ -183,7 +184,7 @@ void startSignal()
 
   for (int i = 0; i < 3; ++i) {
    tone(SOUND_PORT, SOUND_RED, SOUND_SHORT_LENGTH);
-   analogWrite(RED_LED, 255);
+   analogWrite(RED_LED, LED_BRIGHTNESS);
    delay(1000);    
    analogWrite(RED_LED, 0);
    delay(1000);    
@@ -192,7 +193,7 @@ void startSignal()
     Serial.println("Go!");
   }
   tone(SOUND_PORT, SOUND_GREEN, SOUND_LONG_LENGTH);
-  analogWrite(GREEN_LED, 255);
+  analogWrite(GREEN_LED, LED_BRIGHTNESS);
   delay(500);     
   analogWrite(GREEN_LED, 0);
   beforeTime = millis(); 
