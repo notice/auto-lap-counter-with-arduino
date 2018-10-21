@@ -22,7 +22,7 @@
 
 #define RED_LED 9
 #define GREEN_LED 10
-#define LED_BRIGHTNESS 1
+#define LED_BRIGHTNESS 64
 
 #define SOUND_PORT 12
 #define SOUND_SHORT_LENGTH 200
