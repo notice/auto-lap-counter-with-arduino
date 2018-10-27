@@ -1,14 +1,31 @@
 /*
- * Auto Lap Counter for MINIZ beta-6
- * add sounds to start signal and final lap
+ * Auto Lap Counter for MINIZ beta-7
+ * uploading the results to Cloud Firestore using Cloud Functions
  * 
  * revises
+ * beta-6: sounds to start signal and final lap
  * beta-5: add start signals and printing results
  * beta-4: using PSD(Position Sensitive Detector) GP2Y0A21YK
  * beta-3: add lap signal LEDs
  * 
  * author: kan
  */
+#include "ESP8266.h"
+#include <SoftwareSerial.h>
+
+#define RX 7
+#define TX 6
+
+#define SSID        "ssid"
+#define PASSWORD    "password"
+
+#define END_POINT "blahblahblah.cloudfunctions.net"
+#define PORT 80
+#define ACTION "GET /uploadResults"
+
+SoftwareSerial mySerial(RX, TX); /* RX,TX */
+ESP8266 wifi(mySerial);
+
 #define ANALOG_PORT 5
 #define ANALOG_THRESHOLD 300
 #define CHATTERING 2
@@ -22,7 +39,7 @@
 
 #define RED_LED 9
 #define GREEN_LED 10
-#define LED_BRIGHTNESS 64
+#define LED_BRIGHTNESS 32
 
 #define SOUND_PORT 12
 #define SOUND_SHORT_LENGTH 200
@@ -50,8 +67,12 @@ int booingLevel = 0;
 int lapSignalCount = 0;
 int lapSignalPort = 0;
 
+int wifiStatus = 0;
+int uploading = 0;
+int uploadingDelay = 2;
+
 void setup() {
-  Serial.begin(9600);
+  wifiStatus = setupWifi();
   startSignal();
 }
 
@@ -102,6 +123,12 @@ void finish()
       finishedFlash = 0;
       analogWrite(GREEN_LED, 0);
       delay(500);            
+      if (wifiStatus && !uploading) {
+        if (--uploadingDelay <= 0) { // wait for finishing last sound.
+          uploadResults(times, MAX_LAP);
+          uploading = 1;
+        }
+      }
     }
   }
 }
@@ -163,24 +190,9 @@ void frashLapSignal()
   }
 }
 
-void printTime(unsigned long time)
-{
-  unsigned int secs = time / 1000;
-  unsigned int msecs = (time / 10) % 100;
-  if (secs < 10) {
-    Serial.print(0);
-  }
-  Serial.print(secs);
-  Serial.print(".");
-  if (msecs < 10) {
-    Serial.print(0);    
-  }
-  Serial.println(msecs);
-}
-
 void startSignal()
 {
-  Serial.println("Auto Lap Counter beta-6 Ready.");
+  Serial.println("Auto Lap Counter beta-7 Ready.");
 
   for (int i = 0; i < 3; ++i) {
    tone(SOUND_PORT, SOUND_RED, SOUND_SHORT_LENGTH);
@@ -197,6 +209,23 @@ void startSignal()
   delay(500);     
   analogWrite(GREEN_LED, 0);
   beforeTime = millis(); 
+}
+
+void printTime(long time)
+{
+  char buffer[8] = {0};
+  time2str(time, buffer);
+  Serial.println(buffer);
+}
+
+int time2str(long time, char *buffer)
+{
+  int secs = time / 1000;
+  int msecs = (time / 10) % 100;
+  itoa(secs, buffer, 10);
+  buffer[strlen(buffer)] = '.';
+  itoa(msecs, buffer + strlen(buffer), 10);
+  return strlen(buffer);
 }
 
 void printLapTimes()
@@ -221,4 +250,70 @@ void printLapTimes()
   Serial.print("best lap: "); Serial.print(bestLap + 1); Serial.print(" time: "); printTime(times[bestLap]);
   Serial.print("   total: "); printTime(totalTime);
   Serial.print("     avg: "); printTime(totalTime / MAX_LAP);
+}
+
+int setupWifi() {
+
+  Serial.begin(9600);
+
+  if (!wifi.setOprToStationSoftAP()) {
+    Serial.println("fail to set station + softap.");
+    return 0;
+  }
+
+  if (!wifi.joinAP(SSID, PASSWORD)) {
+    Serial.println("fail to join AP.");
+    return 0;
+  }
+  
+  Serial.println("success to join AP.");
+  Serial.print("IP:"); Serial.println(wifi.getLocalIP().c_str());
+  
+  if (!wifi.disableMUX()) {
+    Serial.println("fail to disable MUX.");
+    return 0;
+  }
+  return 1;
+}
+
+void uploadResults(int *times, int n)
+{
+  char buffer[256] = {0};
+
+  Serial.print("connecting...");
+
+  if (wifi.createTCP(END_POINT, PORT)) {
+    Serial.println("ok");
+  } else {
+    Serial.println("ng");
+    return;
+  }
+
+  const char *param = "?results=";
+  const char *proto = " HTTP/1.0\r\n";
+  const char *host = "Host: ";
+  const char *userAgent = "\r\nUser-Agent: auto-lap-counter/beta-7\r\n";
+  const char *accept = "Accept: */*\r\n\r\n";
+
+  char results[128] = {0};
+  createResults(times, n, results);
+
+  strcpy(buffer, ACTION);
+  strcat(buffer, param), strcat(buffer, results), strcat(buffer, proto);
+  strcat(buffer, host), strcat(buffer, END_POINT);
+  strcat(buffer, userAgent);
+  strcat(buffer, accept);
+  
+  wifi.send((uint8_t *)buffer, strlen(buffer));
+}
+
+void createResults(int *times, int n, char *buffer) {
+  char *p = buffer;
+  
+  for (int i = 0; i < n; ++i) {
+    if (i > 0) {
+      *p++ = ',';
+    }
+    p += time2str(times[i], p);
+  }  
 }
